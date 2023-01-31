@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lab3/Model/list_item.dart';
 import 'package:nanoid/nanoid.dart';
@@ -16,9 +18,18 @@ class NovElement extends StatefulWidget {
 class _NovElementState extends State<NovElement> {
   final _nameController = TextEditingController();
   final _dateTimeController = TextEditingController();
+  // new
+  final FirebaseAuth auth = FirebaseAuth.instance;
 
   late String courseName;
   late DateTime dateTime;
+
+  // new
+  Future addItemToDB({required ListItem item}) async {
+    final docItem = FirebaseFirestore.instance.collection('courses').doc(item.id);
+    final json = item.toJson();
+    await docItem.set(json);
+  }
 
   void _submitData() {
     if (_dateTimeController.text.isEmpty) {
@@ -32,8 +43,14 @@ class _NovElementState extends State<NovElement> {
     }
 
     final newItem = ListItem(
-        id: nanoid(5), courseName: inputedName, dateTime: inputedDateTime);
+        id: nanoid(5),
+        userId: auth.currentUser!.uid,
+        courseName: inputedName,
+        dateTime: inputedDateTime);
+
     widget.addItem(newItem);
+    // new
+    addItemToDB(item: newItem);
     Navigator.of(context).pop();
   }
 
@@ -44,7 +61,7 @@ class _NovElementState extends State<NovElement> {
       child: Column(
         children: [
           Text(
-            'Add colloquium',
+            'Add exam',
             style: TextStyle(fontSize: 20, color: Colors.cyan),
           ),
           TextField(
@@ -99,7 +116,6 @@ class _NovElementState extends State<NovElement> {
               _submitData,
             ),
             margin: const EdgeInsets.all(15),
-
           )
         ],
       ),
