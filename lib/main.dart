@@ -7,10 +7,36 @@ import 'widgets/new_element.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'widgets/login_widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
+
+const AndroidNotificationDetails androidNotificationDetails =
+    AndroidNotificationDetails('main_channel', 'Main Channel',
+        channelDescription: 'ashwin',
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'ticker');
+const NotificationDetails notificationDetails = NotificationDetails(
+  android: androidNotificationDetails,
+  iOS: DarwinNotificationDetails(
+    sound: 'default.wav',
+    presentAlert: true,
+    presentBadge: true,
+    presentSound: true,
+  ),
+);
 
 Future main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+
+  flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestPermission();
+
   runApp(MyApp());
 }
 
@@ -62,6 +88,17 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
+  @override
+  void initState() {
+    super.initState();
+
+    flutterLocalNotificationsPlugin.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
+  }
+
   final user = FirebaseAuth.instance.currentUser!;
   List<ListItem> listCourses = [];
 
@@ -180,12 +217,30 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
         subtitle: Text(
             "${DateFormat("dd/MM/yyyy hh:mm").format(course.dateTime)}",
             style: TextStyle(color: Colors.grey)),
-        trailing: IconButton(
-          icon: Icon(Icons.delete),
-          onPressed: () async {
-            await deleteCourse(course.id);
-            setState(() => {});
-          },
+        trailing: FittedBox(
+          fit: BoxFit.fill,
+          child: Row(
+            children: <Widget>[
+              IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () async {
+                  await deleteCourse(course.id);
+                  setState(() => {});
+                },
+              ),
+              IconButton(
+                icon: Icon(Icons.access_alarm),
+                onPressed: () async {
+                  await flutterLocalNotificationsPlugin.show(
+                      0,
+                      'Reminder for exam',
+                      '${course.courseName} on ${DateFormat("dd/MM/yyyy hh:mm").format(course.dateTime)}',
+                      notificationDetails,
+                      payload: '${course.dateTime.toString()}');
+                },
+              ),
+            ],
+          ),
         ),
       );
 
@@ -200,7 +255,7 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
   PreferredSizeWidget _createAppBar() {
     return AppBar(
         title: Text(
-          "Laboratory Exercise No. 3",
+          "MIS Courses Management",
           style: TextStyle(
             color: Colors.white,
           ),
@@ -215,8 +270,10 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
             onPressed: () => _addItemFunction(context),
           ),
           IconButton(
-              onPressed: () => FirebaseAuth.instance.signOut(),
-              icon: const Icon(Icons.logout))
+            onPressed: () => FirebaseAuth.instance.signOut(),
+            icon: const Icon(Icons.logout),
+            color: Colors.white,
+          )
         ]);
   }
 
