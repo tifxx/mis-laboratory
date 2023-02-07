@@ -126,6 +126,7 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
   void _addItemFunction(BuildContext ct) {
     showModalBottomSheet(
         context: ct,
+        isScrollControlled: true,
         builder: (_) {
           return GestureDetector(
               onTap: () {},

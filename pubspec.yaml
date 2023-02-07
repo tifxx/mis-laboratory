@@ -43,6 +43,11 @@ dependencies:
   firebase_auth: ^4.2.2
   flutter_local_notifications: ^13.0.0
   flutter_native_timezone: ^2.0.0
+  google_maps_flutter: ^2.2.3
+  geolocator: ^9.0.2
+  location: ^4.4.0
+  permission: ^0.1.7
+  permission_handler: ^10.2.0
 
 
 dev_dependencies:

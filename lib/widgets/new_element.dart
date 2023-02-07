@@ -1,9 +1,14 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:lab3/Model/list_item.dart';
 import 'package:nanoid/nanoid.dart';
 import 'package:intl/intl.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 
 import 'adaptive_flat_button.dart';
 
@@ -15,18 +20,22 @@ class NovElement extends StatefulWidget {
   State<StatefulWidget> createState() => _NovElementState();
 }
 
+
 class _NovElementState extends State<NovElement> {
   final _nameController = TextEditingController();
   final _dateTimeController = TextEditingController();
-  // new
+  final _locationController = TextEditingController();
+  //Completer<GoogleMapController> _controller = Completer();
+   GoogleMapController? _controller;
+
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   late String courseName;
   late DateTime dateTime;
 
-  // new
   Future addItemToDB({required ListItem item}) async {
-    final docItem = FirebaseFirestore.instance.collection('courses').doc(item.id);
+    final docItem =
+        FirebaseFirestore.instance.collection('courses').doc(item.id);
     final json = item.toJson();
     await docItem.set(json);
   }
@@ -49,7 +58,6 @@ class _NovElementState extends State<NovElement> {
         dateTime: inputedDateTime);
 
     widget.addItem(newItem);
-    // new
     addItemToDB(item: newItem);
     Navigator.of(context).pop();
   }
@@ -58,11 +66,12 @@ class _NovElementState extends State<NovElement> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(15),
+      height: 750,
       child: Column(
         children: [
           Text(
             'Add exam',
-            style: TextStyle(fontSize: 20, color: Colors.cyan),
+            style: TextStyle(fontSize: 25, color: Colors.cyan),
           ),
           TextField(
             controller: _nameController,
@@ -110,6 +119,30 @@ class _NovElementState extends State<NovElement> {
             },
             onSubmitted: (_) => _submitData(),
           ),
+          //         GoogleMap(
+          //         onMapCreated: (GoogleMapController controller) {
+          //   _controller.complete(controller);
+          // },
+          //         initialCameraPosition: CameraPosition(
+          //           target: LatLng(45.521563, -122.677433),
+          //           zoom: 11.0,
+          //         )),
+          SizedBox(
+              width: MediaQuery.of(context).size.width,
+              height: 400,
+              child: GoogleMap(
+                mapType: MapType.normal,
+                onMapCreated: (GoogleMapController controller) {
+                  _controller = controller;
+                },
+                initialCameraPosition: CameraPosition(
+                    target: LatLng(42.0041222, 21.4073592), zoom: 10),
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+
+              )
+             // child: Card(child: Text('Hello World!')),
+              ),
           Container(
             child: AdaptiveFlatButton(
               "Add",
@@ -128,4 +161,6 @@ class _NovElementState extends State<NovElement> {
         firstDate: DateTime(2022),
         lastDate: DateTime(2030),
       );
+
+
 }
