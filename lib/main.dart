@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'package:lab3/widgets/calendar.dart';
 import 'Model/list_item.dart';
@@ -101,8 +102,9 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
 
   final user = FirebaseAuth.instance.currentUser!;
   List<ListItem> listCourses = [];
-
   final RestorableInt _index = RestorableInt(0);
+  GoogleMapController? _controller;
+  List<Marker> markers = [];
 
   final List<ListItem> _elements = [
     // ListItem(
@@ -147,7 +149,7 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
         child: new Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(35),
+              padding: const EdgeInsets.all(25),
               child: Column(
                 children: [
                   Text(
@@ -165,7 +167,7 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
               ),
             ),
             Padding(
-                padding: const EdgeInsets.all(30),
+                padding: const EdgeInsets.all(15),
                 child: FutureBuilder<List<ListItem>>(
                     future: readItems(),
                     builder: (context, snapshot) {
@@ -203,7 +205,18 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
               ),
               style: ElevatedButton.styleFrom(
                 primary: Colors.cyan,
-                padding: EdgeInsets.symmetric(horizontal: 50, vertical: 20),
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _showLocations,
+              child: const Text(
+                "Show locations of exams",
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                primary: Colors.cyan,
+                padding: EdgeInsets.symmetric(horizontal: 40, vertical: 12),
               ),
             ),
           ],
@@ -240,10 +253,47 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
                       payload: '${course.dateTime.toString()}');
                 },
               ),
+              IconButton(
+                icon: Icon(Icons.location_on_outlined),
+                onPressed: () {
+                  showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          height: 500,
+                          child: GoogleMap(
+                            mapType: MapType.normal,
+                            onMapCreated: (GoogleMapController controller) {
+                              _controller = controller;
+                            },
+                            initialCameraPosition: const CameraPosition(
+                                target: LatLng(42.0041222, 21.4073592),
+                                zoom: 14),
+                            myLocationEnabled: true,
+                            myLocationButtonEnabled: true,
+                            markers:
+                                setMarker(course.latitude, course.longitude),
+                          )));
+                },
+              ),
             ],
           ),
         ),
       );
+
+  Set<Marker> setMarker(double lat, double lon) {
+    LatLng point = LatLng(lat, lon);
+    Set<Marker> set = Set();
+    Marker marker = Marker(
+      markerId: MarkerId('1'),
+      position: point,
+      infoWindow: InfoWindow(title: 'Location for your exam'),
+      icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+    );
+    set.add(marker);
+    return set;
+  }
 
   Future deleteCourse(String id) async {
     try {
@@ -256,7 +306,7 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
   PreferredSizeWidget _createAppBar() {
     return AppBar(
         title: Text(
-          "MIS Courses Management",
+          "Course exams",
           style: TextStyle(
             color: Colors.white,
           ),
@@ -292,6 +342,39 @@ class _MyHomePageState extends State<MyHomePage> with RestorationMixin {
       MaterialPageRoute(
           builder: (context) => Calendar(items: listCourses.toList())),
     );
+  }
+
+  void _showLocations() {
+    showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        builder: (_) => SizedBox(
+            width: MediaQuery.of(context).size.width,
+            height: 500,
+            child: GoogleMap(
+              mapType: MapType.normal,
+              onMapCreated: (GoogleMapController controller) {
+                _controller = controller;
+              },
+              initialCameraPosition: const CameraPosition(
+                  target: LatLng(42.0041222, 21.4073592), zoom: 14),
+              myLocationEnabled: true,
+              myLocationButtonEnabled: true,
+              markers: setMarkers(listCourses),
+            )));
+  }
+
+  Set<Marker> setMarkers(List<ListItem> listCourses) {
+    return listCourses.map((course) {
+      LatLng point = LatLng(course.latitude, course.longitude);
+
+      return Marker(
+        markerId: MarkerId(course.id),
+        position: point,
+        infoWindow: InfoWindow(title: 'Location for ${course.courseName} exam'),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      );
+    }).toSet();
   }
 
   @override

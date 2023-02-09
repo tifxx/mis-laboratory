@@ -9,29 +9,38 @@ import 'package:intl/intl.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-
 import 'adaptive_flat_button.dart';
 
 class NovElement extends StatefulWidget {
   final Function addItem;
 
+  Future<void> requestPermission() async {
+    await Permission.location.request();
+  }
+
   NovElement(this.addItem);
   @override
-  State<StatefulWidget> createState() => _NovElementState();
-}
+  State<StatefulWidget> createState() {
+    requestPermission();
 
+    return _NovElementState();
+  }
+}
 
 class _NovElementState extends State<NovElement> {
   final _nameController = TextEditingController();
   final _dateTimeController = TextEditingController();
   final _locationController = TextEditingController();
   //Completer<GoogleMapController> _controller = Completer();
-   GoogleMapController? _controller;
+  GoogleMapController? _controller;
+  List<Marker> markers = [];
+  int id = 1;
 
   final FirebaseAuth auth = FirebaseAuth.instance;
 
   late String courseName;
   late DateTime dateTime;
+  late LatLng _latLng;
 
   Future addItemToDB({required ListItem item}) async {
     final docItem =
@@ -41,11 +50,13 @@ class _NovElementState extends State<NovElement> {
   }
 
   void _submitData() {
-    if (_dateTimeController.text.isEmpty) {
+    if (_dateTimeController.text.isEmpty || _latLng == null) {
       return;
     }
     final inputedName = _nameController.text;
     final inputedDateTime = DateTime.parse(_dateTimeController.text);
+    final lat = _latLng.latitude;
+    final lon = _latLng.longitude;
 
     if (inputedName.isEmpty) {
       return;
@@ -55,8 +66,11 @@ class _NovElementState extends State<NovElement> {
         id: nanoid(5),
         userId: auth.currentUser!.uid,
         courseName: inputedName,
-        dateTime: inputedDateTime);
+        dateTime: inputedDateTime,
+        latitude: lat,
+        longitude: lon);
 
+    print('eve go $lon');
     widget.addItem(newItem);
     addItemToDB(item: newItem);
     Navigator.of(context).pop();
@@ -66,7 +80,7 @@ class _NovElementState extends State<NovElement> {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.all(15),
-      height: 750,
+      height: 695,
       child: Column(
         children: [
           Text(
@@ -119,14 +133,6 @@ class _NovElementState extends State<NovElement> {
             },
             onSubmitted: (_) => _submitData(),
           ),
-          //         GoogleMap(
-          //         onMapCreated: (GoogleMapController controller) {
-          //   _controller.complete(controller);
-          // },
-          //         initialCameraPosition: CameraPosition(
-          //           target: LatLng(45.521563, -122.677433),
-          //           zoom: 11.0,
-          //         )),
           SizedBox(
               width: MediaQuery.of(context).size.width,
               height: 400,
@@ -136,13 +142,27 @@ class _NovElementState extends State<NovElement> {
                   _controller = controller;
                 },
                 initialCameraPosition: CameraPosition(
-                    target: LatLng(42.0041222, 21.4073592), zoom: 10),
-                    myLocationEnabled: true,
-                    myLocationButtonEnabled: true,
+                    target: LatLng(42.0041222, 21.4073592), zoom: 14),
+                myLocationEnabled: true,
+                myLocationButtonEnabled: true,
+                onTap: (LatLng latLng) {
+                  Marker marker = Marker(
+                    markerId: MarkerId('$id'),
+                    position: LatLng(latLng.latitude, latLng.longitude),
+                    infoWindow: InfoWindow(title: 'Location for your exam'),
+                    icon: BitmapDescriptor.defaultMarkerWithHue(
+                        BitmapDescriptor.hueRed),
+                  );
+                  markers.add(marker);
+                  _latLng = latLng;
+                  id = id + 1;
+                  setState(() {
 
-              )
-             // child: Card(child: Text('Hello World!')),
-              ),
+                  });
+                  print('I tapped $latLng');
+                },
+                markers: markers.map((e) => e).toSet(),
+              )),
           Container(
             child: AdaptiveFlatButton(
               "Add",
@@ -161,6 +181,4 @@ class _NovElementState extends State<NovElement> {
         firstDate: DateTime(2022),
         lastDate: DateTime(2030),
       );
-
-
 }
