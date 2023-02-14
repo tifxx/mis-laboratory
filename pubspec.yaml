@@ -48,7 +48,7 @@ dependencies:
   location: ^4.4.0
   permission: ^0.1.7
   permission_handler: ^10.2.0
-
+  flutter_polyline_points: ^1.0.0
 
 dev_dependencies:
   flutter_test:
